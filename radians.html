@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cercle unitaire, angle ωt en radians</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 8px 16px; color: #1a1a1a; background: #fff; }
+  .wrap { max-width: 1500px; margin: 0 auto; text-align: center; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p.intro { font-size: 15px; color: #444; margin: 0 auto 4px; max-width: 1100px; }
+  svg { display: block; width: 100%; height: auto; max-height: 90vh; margin: 0 auto; }
+  .ctrl { display: flex; align-items: center; gap: 12px; margin: 8px auto; max-width: 1100px; font-size: 18px; }
+  .ctrl input[type=range] { flex: 1; }
+  .ctrl output { min-width: 60px; text-align: right; font-weight: bold; }
+  .btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 1100px; margin: 0 auto; }
+  .btns button { font-size: 15px; padding: 4px 10px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+  .btns button.on { background: #e6e6e6; }
+  footer { font-size: 13px; color: #666; margin: 16px auto 0; max-width: 900px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cercle unitaire : l'angle ωt qui varie, en radians</h1>
+  <p class="intro"><strong>Quand l'angle varie, c'est ωt ; quand il est arrêté, c'est φ.</strong> Cette page montre l'angle ωt qui varie, en radians : faites glisser le curseur de 0 à 2π rad et regardez les six fonctions changer. Rappel : 2π rad = 360°, et 1 rad ≈ 57,3°. Pour l'angle arrêté φ, en degrés, ouvrez la <a href="index.html">version en degrés (φ)</a>.</p>
+  <svg id="fig" viewBox="0 30 970 545" role="img" aria-label="Cercle unitaire"></svg>
+  <div class="ctrl">
+    <label for="deg">ωt</label>
+    <input id="deg" type="range" min="0" max="360" step="1" value="30" aria-label="Angle ωt en radians">
+    <output id="out">π/6 rad</output>
+  </div>
+  <div class="btns" id="btns"></div>
+  <footer>Du calcul au chantier — Cours 1 : La trigonométrie au service de l'électricien. Arnaldo S. Attallah, P.Eng. (retraité). © 2026 Arnaldo S. Attallah. Tous droits réservés.</footer>
+</div>
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('fig'), slider = document.getElementById('deg'), out = document.getElementById('out');
+  var COL = { sin: '#7B5CD6', cos: '#1B9E8F', tan: '#E8613C', cot: '#8A8A8A', sec: '#2E6FD8', csc: '#F2C200' };
+  var R = 175, ox = 345, oy = 302, L = 1.5, LX = 1.9, BIG = 40;
+  function X(u) { return ox + R * u; }
+  function Y(v) { return oy - R * v; }
+  function cl(v) { return Math.max(-L, Math.min(L, v)); }
+  function cap(p, m) { var h = Math.hypot(p[0], p[1]); return h > m ? [p[0] * m / h, p[1] * m / h] : p; }
+  function fmt(v) { if (v === null) return 'indéfini'; if (Math.abs(v) < 5e-4) v = 0; return v.toFixed(3).replace('.', ',').replace('-', '−'); }
+  function el(tag, attrs, parent, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    (parent || svg).appendChild(e); return e;
+  }
+  function line(g, x1, y1, x2, y2, stroke, w, dash, off) {
+    var a = { x1: X(x1), y1: Y(y1), x2: X(x2), y2: Y(y2), stroke: stroke, 'stroke-width': w };
+    if (dash) { a['stroke-dasharray'] = dash; a['stroke-dashoffset'] = off || 0; }
+    return el('line', a, g);
+  }
+  function label(g, x, y, k, txt, anchor) {
+    el('text', { x: X(x), y: Y(y), 'text-anchor': anchor || 'middle', 'font-size': 16, 'font-weight': 'bold', fill: k === 'csc' ? '#A88600' : COL[k] }, g, txt);
+  }
+  var FR = {0:'0',30:'π/6',45:'π/4',60:'π/3',90:'π/2',120:'2π/3',135:'3π/4',150:'5π/6',180:'π',210:'7π/6',225:'5π/4',240:'4π/3',270:'3π/2',300:'5π/3',315:'7π/4',330:'11π/6',360:'2π'};
+  function radTxt(deg, full) {
+    var v = (deg * Math.PI / 180).toFixed(3).replace('.', ',');
+    if (FR[deg] !== undefined) return full && deg !== 0 ? FR[deg] + ' = ' + v + ' rad' : FR[deg] + ' rad';
+    return v + ' rad';
+  }
+  function draw(deg) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    var c0 = Math.abs(c) < 1e-9, s0 = Math.abs(s) < 1e-9;
+    var tn = c0 ? null : s / c, ct = s0 ? null : c / s, sc = c0 ? null : 1 / c, cs = s0 ? null : 1 / s;
+    var far = tn === null ? null : (Math.abs(tn) > BIG ? [BIG / Math.abs(tn), BIG * Math.sign(tn)] : [1, tn]);
+    var tp = ct === null ? null : (Math.abs(ct) > BIG ? [BIG * Math.sign(ct), BIG / Math.abs(ct)] : [ct, 1]);
+    var defs = el('defs', {}); var cp = el('clipPath', { id: 'clip' }, defs);
+    el('rect', { x: X(-LX), y: Y(L), width: 2 * LX * R, height: 2 * L * R }, cp);
+    var g = el('g', { 'clip-path': 'url(#clip)' });
+    line(g, -LX, 0, LX, 0, '#777', 1); line(g, 0, -L, 0, L, '#777', 1);
+    el('circle', { cx: ox, cy: oy, r: R, fill: 'none', stroke: '#1a1a1a', 'stroke-width': 1.5 }, g);
+    line(g, 1, -L, 1, L, '#dddddd', 1.5); line(g, -LX, 1, LX, 1, '#dddddd', 1.5);
+    line(g, -3 * c, -3 * s, 3 * c, 3 * s, '#777', 1, '2 4');
+    line(g, 0, 0, c, s, '#1a1a1a', 2);
+    if (far) line(g, 0, 0, far[0], far[1], COL.sec, 4, '10 10', 0);
+    if (tp) line(g, 0, 0, tp[0], tp[1], COL.csc, 4, '10 10', 10);
+    line(g, 0, 0, c, 0, COL.cos, 4.5);
+    line(g, c, 0, c, s, COL.sin, 4.5);
+    if (far) line(g, 1, 0, 1, far[1], COL.tan, 4.5);
+    if (tp) line(g, 0, 1, tp[0], 1, COL.cot, 4.5);
+    var rad = 38, a = ((deg % 360) + 360) % 360;
+    el('path', { d: 'M' + (ox + rad) + ' ' + oy + 'A' + rad + ' ' + rad + ' 0 ' + (a > 180 ? 1 : 0) + ' 0 ' + (ox + rad * c) + ' ' + (oy - rad * s), fill: 'none', stroke: '#1a1a1a', 'stroke-width': 1 }, g);
+    el('circle', { cx: X(c), cy: Y(s), r: 4.5, fill: '#1a1a1a' }, g);
+    el('circle', { cx: ox, cy: oy, r: 3, fill: '#1a1a1a' }, g);
+    if (Math.abs(c) > 0.12) label(g, c / 2, s >= 0 ? -0.17 : 0.1, 'cos', 'cos ωt');
+    if (Math.abs(s) > 0.12) label(g, c + (c >= 0 ? -0.05 : 0.05), s / 2 - 0.03, 'sin', 'sin ωt', c >= 0 ? 'end' : 'start');
+    if (far && Math.abs(far[1]) > 0.12) label(g, 1.07, cl(far[1]) / 2, 'tan', 'tan ωt', 'start');
+    if (tp && Math.abs(tp[0]) > 0.12) label(g, Math.max(-LX, Math.min(LX, tp[0])) / 2, 1.07, 'cot', 'cot ωt');
+    if (far) { var m = cap(far, 1.6); label(g, m[0] * 0.5 + 0.05 - 0.16 * s, m[1] * 0.5 + 0.16 * c, 'sec', 'sec ωt', 'end'); }
+    if (tp) { var n = cap(tp, 1.75); label(g, n[0] * 0.8 - 0.05, n[1] * 0.8 + 0.08, 'csc', 'csc ωt', 'end'); }
+    el('text', { x: X(c - 0.1 * s), y: Y(s + 0.1 * c) + 5, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 'bold', fill: '#1a1a1a' }, g, 'P');
+    el('text', { x: ox - 6, y: oy + 16, 'text-anchor': 'end', 'font-size': 12, fill: '#1a1a1a' }, g, 'O');
+    el('text', { x: ox + 54 * Math.cos(t / 2), y: oy - 54 * Math.sin(t / 2) + 5, 'text-anchor': 'middle', 'font-size': 16, fill: '#1a1a1a' }, g, 'ωt');
+    el('text', { x: X(1) + 4, y: oy + 16, 'font-size': 11, fill: '#666' }, g, '(1, 0)');
+    el('text', { x: ox + 4, y: Y(1) - 6, 'font-size': 11, fill: '#666' }, g, '(0, 1)');
+    var rows = [['sin ωt', 'sin', s], ['cos ωt', 'cos', c], ['tan ωt = sin / cos', 'tan', tn], ['cot ωt = cos / sin', 'cot', ct], ['sec ωt = 1 / cos', 'sec', sc], ['csc ωt = 1 / sin', 'csc', cs]];
+    var T = oy - 221, PX = 712;
+    el('text', { x: PX, y: T, 'font-size': 17, 'font-weight': 'bold', fill: '#1a1a1a' }, null, 'Valeurs à ωt = ' + radTxt(deg, true));
+    el('text', { x: PX, y: T + 28, 'font-size': 16, fill: '#1a1a1a' }, null, 'OP = 1 (toujours)');
+    rows.forEach(function (r, i) {
+      el('rect', { x: PX, y: T + 50 + i * 42, width: 20, height: 20, rx: 4, fill: COL[r[1]] });
+      el('text', { x: PX + 30, y: T + 66 + i * 42, 'font-size': 16, fill: '#1a1a1a' }, null, r[0]);
+      el('text', { x: PX + 240, y: T + 66 + i * 42, 'text-anchor': 'end', 'font-size': 16, 'font-weight': 'bold', fill: '#1a1a1a' }, null, fmt(r[2]));
+    });
+    var notes = [['Pythagore, trois fois :', true], ['sin² ωt + cos² ωt = 1'], ['1 + tan² ωt = sec² ωt'], ['1 + cot² ωt = csc² ωt']];
+    notes.forEach(function (n, i) { el('text', { x: PX, y: T + 330 + i * 26, 'font-size': 15, 'font-weight': n[1] ? 'bold' : 'normal', fill: '#1a1a1a' }, null, n[0]); });
+    ['sec et csc suivent le rayon', 'prolongé : tirets alternés', 'bleu et jaune.'].forEach(function (txt, i) {
+      el('text', { x: PX, y: T + 450 + i * 18, 'font-size': 13, fill: '#666' }, null, txt);
+    });
+    out.textContent = radTxt(deg, false);
+    Array.prototype.forEach.call(document.querySelectorAll('#btns button'), function (b) { b.className = (+b.dataset.a === deg) ? 'on' : ''; });
+  }
+  [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360].forEach(function (a) {
+    var b = document.createElement('button'); b.textContent = FR[a]; b.dataset.a = a;
+    b.onclick = function () { slider.value = a; draw(a); };
+    document.getElementById('btns').appendChild(b);
+  });
+  slider.addEventListener('input', function () { draw(+slider.value); });
+  draw(30);
+})();
+</script>
+</body>
+</html>
